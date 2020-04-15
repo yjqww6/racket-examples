@@ -60,7 +60,7 @@
   (define-values (f t) (ports->ssl-ports i o #:mode 'connect #:hostname "github.com"
                                          #:context ctx))
   (define hc (http-conn-open "github.com"
-                             #:ssl? (list ctx f t tcp-abandon-port)
+                             #:ssl? (list ctx f t ssl-abandon-port)
                              #:port 443))
   (define-values (status header port) (http-conn-sendrecv! hc "/"))
   (displayln (port->bytes port))
