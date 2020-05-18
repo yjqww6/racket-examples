@@ -38,10 +38,10 @@
     (define paintme (λ () (on-paint)))
     (define on-tab-in-me (λ () (on-tab-in)))
 
-    (define/public (on-char e) (void)) ;no-effect
-    (define/public (on-event e) (void)) ;no-effect
+    (define/public-final (on-char e) (void))
+    (define/public-final (on-event e) (void))
     (define/public (on-paint) (paint-cb this (get-dc)))
-    (define/public (on-tab-in) (void))
+    (define/public-final (on-tab-in) (void))
     
     (define min-client-width (param (lambda () wx) min-client-width))
     (define min-client-height (param (lambda () wx) min-client-height))
@@ -126,13 +126,7 @@
 (module+ main
   (require racket/gui/base)
   (define a (new frame% [label "test"] [width 640] [height 480]))
-  (define p (new (class canvas-panel%
-                   (super-new)
-                   (define/override (on-tab-in)
-                     (let-values ([(w h) (send this get-scaled-client-size)])
-                       (printf "~a ~a ~a ~a ~%" w h
-                               (send this min-client-width)
-                               (send this min-client-height)))))
+  (define p (new canvas-panel%
                  [parent a]
                  [min-height 100]
                  [paint-callback
