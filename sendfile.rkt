@@ -39,10 +39,9 @@
                          "sendfile failed"
                          (current-continuation-marks)
                          (saved-errno)))]
-                [(= (unbox off) size)
-                 size]
-                [else
-                 (loop)]))
+                [(or (= (unbox off) size) (= ret 0))
+                 (unbox off)]
+                [else (loop)]))
             (wait socket-port)))))
     
     ))
@@ -71,10 +70,8 @@
                          "sendfile failed"
                          (current-continuation-marks)
                          (saved-errno)))]
-                [(= ret 0)
-                 size]
-                [else
-                 (loop (+ ret size))]))
+                [(= ret 0) size]
+                [else (loop (+ ret size))]))
             (wait socket-port)))))
     ))
 
