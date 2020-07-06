@@ -2,10 +2,13 @@
 
 (require ffi/unsafe ffi/unsafe/port)
 (provide sendfile sendfile*)
-    
-(define (wait socket-port)
-  (semaphore-wait (unsafe-socket->semaphore (unsafe-port->socket socket-port)
-                                            'write)))
+
+(define (wait port)
+  (if (break-enabled)
+      (sync/enable-break port)
+      (sync port)))
+
+(define EAGAIN 11)
 
 (define sendfile
   (let ([send (get-ffi-obj
@@ -25,6 +28,7 @@
         (λ (file-port)
           (define size (port-size file-port))
           (define off (box 0))
+          (flush-output socket-port)
           (begin0
             (let loop ()
               (wait socket-port)
@@ -35,10 +39,13 @@
                       (- size (unbox off))))
               (cond
                 [(= ret -1)
-                 (raise (exn:fail:network:errno
-                         "sendfile failed"
-                         (current-continuation-marks)
-                         (saved-errno)))]
+                 (define errno (saved-errno))
+                 (if (= errno EAGAIN)
+                     (loop size)
+                     (raise (exn:fail:filesystem:errno
+                             "sendfile failed"
+                             (current-continuation-marks)
+                             errno)))]
                 [(or (= (unbox off) size) (= ret 0))
                  (unbox off)]
                 [else (loop)]))
@@ -51,7 +58,7 @@
                "sendfile" #f
                (_fun
                 #:save-errno 'posix
-                _int _int (_intptr = 0) _size
+                _int _int (_pointer = #f) _size
                 -> _ssize))])
 
     (λ (path socket-port)
@@ -66,10 +73,13 @@
                       4096))
               (cond
                 [(= ret -1)
-                 (raise (exn:fail:network:errno
-                         "sendfile failed"
-                         (current-continuation-marks)
-                         (saved-errno)))]
+                 (define errno (saved-errno))
+                 (if (= errno EAGAIN)
+                     (loop size)
+                     (raise (exn:fail:filesystem:errno
+                             "sendfile failed"
+                             (current-continuation-marks)
+                             errno)))]
                 [(= ret 0) size]
                 [else (loop (+ ret size))]))
             (wait socket-port)))))
