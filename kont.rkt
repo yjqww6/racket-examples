@@ -10,6 +10,12 @@
   (for ([i (in-range n)])
     (k i)))
 
+(struct kont-stream (v [r #:mutable])
+  #:methods gen:stream
+  [(define (stream-empty? self) #f)
+   (define (stream-first self) (kont-stream-v self))
+   (define (stream-rest self) ((kont-stream-r self)))])
+
 (define (in-kont/proc f [tag (default-continuation-prompt-tag)])
   (call-with-continuation-prompt
    (λ ()
@@ -17,9 +23,17 @@
                 (λ (k)
                   (abort-current-continuation
                    tag
-                   (λ () (stream-cons v (call-with-continuation-prompt
-                                         k
-                                         tag (λ (thunk) (thunk)))))))
+                   (λ ()
+                     (define stream
+                       (kont-stream
+                        v
+                        (λ ()
+                          (define r (call-with-continuation-prompt
+                                     k
+                                     tag (λ (thunk) (thunk))))
+                          (set-kont-stream-r! stream (λ () r))
+                          r)))
+                     stream)))
                 tag)))
      empty-stream)
    tag
@@ -29,14 +43,13 @@
   (λ () #'in-kont/proc)
   (λ (stx)
     (syntax-parse stx
-      [[(~or* (v:id ...) x:id)
+      [[(x:id ...)
         (_ f:expr
            (~optional t:expr #:defaults
                       ([t #'(default-continuation-prompt-tag)])))]
-       #:with (param ...) (if (attribute x) #'(x) #'(v ...))
-       #:with (tmp ...) (generate-temporaries #'(param ...))
-       #:with (falsy ...) (map (λ (_) #'#f) (syntax->list #'(param ...)))
-       #'[(k param ...)
+       #:with (tmp ...) (generate-temporaries #'(x ...))
+       #:with (falsy ...) (map (λ (_) #'#f) (syntax->list #'(x ...)))
+       #'[(k x ...)
           (:do-in
            ([(proc) (let ([tag t]
                           [proc f])
@@ -61,7 +74,7 @@
            (void)
            ([loopme proc])
            loopme
-           ([(k param ...) (loopme)])
+           ([(k x ...) (loopme)])
            #t
            #t
            ((k)))]])))
