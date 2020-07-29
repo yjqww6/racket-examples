@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require racket/stream (for-syntax racket/base syntax/parse racket/list))
+(require racket/stream
+         (for-syntax racket/base syntax/parse racket/list
+                     syntax/unsafe/for-transform))
 (provide in-mapped in-filtered)
 
 (define pre (gensym))
