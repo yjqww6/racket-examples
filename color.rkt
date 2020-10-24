@@ -22,7 +22,7 @@
       [(cons (vector start end type s) rest)
        (cond
          [(< pos start)
-          (cons `(code () ,(substring str pos start))
+          (cons `(code ((class "racket")) ,(substring str pos start))
                 (loop start colored))]
          [(= pos start)
           (cons `(code ((class ,(string-append "racket "
@@ -34,7 +34,7 @@
          [(>= pos (string-length str))
           '()]
          [else
-          (list `(code () ,(substring str pos)))])])))
+          (list `(code ((class "racket")) ,(substring str pos)))])])))
 
 (define style
   #<<style
@@ -48,13 +48,13 @@ code.symbol {
   color: rgb(38, 38, 128);
 }
 code.hash-colon-keyword {
-  color: rgb(38, 38, 128);
+  color: rgb(132, 60, 36);
 }
 code.string,code.constant {
-  color: rgb(41,128,38);
+  color: rgb(41, 128, 38);
 }
 code.comment,code.sexp-comment {
-  color: rgb(192,116,31);
+  color: rgb(192, 116, 31);
 }
 style
   )
