@@ -13,28 +13,30 @@
        (loop new-mode (cons (vector (sub1 start) (sub1 end) type str) s))]
       [else (loop new-mode s)])))
 
-(define (colorme str)
+(define (colorme bstr)
   (define colored
-    (types (open-input-string str)))
+    (types (open-input-bytes bstr)))
 
   (let loop ([pos 0] [colored colored])
     (match colored
       [(cons (vector start end type s) rest)
        (cond
          [(< pos start)
-          (cons `(code ((class "racket")) ,(substring str pos start))
+          (define bs (subbytes bstr pos start))
+          (cons `(code ((class "racket")) ,(bytes->string/utf-8 bs))
                 (loop start colored))]
          [(= pos start)
+          (writeln s)
           (cons `(code ((class ,(string-append "racket "
                                                (symbol->string type))))
                        ,s)
                 (loop end rest))])]
       [_
        (cond
-         [(>= pos (string-length str))
+         [(>= pos (bytes-length bstr))
           '()]
          [else
-          (list `(code ((class "racket")) ,(substring str pos)))])])))
+          (list `(code ((class "racket")) ,(bytes->string/utf-8 (subbytes bstr pos))))])])))
 
 (define style
   #<<style
@@ -66,11 +68,13 @@ style
   (display-to-file
    (xexpr->string
     `(html () (head ()
+                    (meta ((charset "utf8")))
                     (style () ,style))
            (body ()
-                 (pre () ,@(colorme (file->string color.rkt))))))
+                 (pre () ,@(colorme (file->bytes color.rkt))))))
    file
    #:exists 'replace)
   
   (require net/sendurl)
+  (void (λ () (void)))
   (send-url/file (path->string file)))
